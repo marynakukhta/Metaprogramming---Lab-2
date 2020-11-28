@@ -1,0 +1,4 @@
+/dist/
+/dart_code_convention_fixer.egg-info/
+/build/
+/.idea/*
