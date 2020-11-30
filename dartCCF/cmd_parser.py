@@ -1,19 +1,34 @@
+import os
 from argparse import ArgumentParser
-
 from .analyzer import *
 
+import glob
 
-class CommandArgs:
+
+class FileCollection:
     def __init__(self, args):
         if args.project_path is not None:
-            self.type = "project"
+            self.source_type = "project"
             self.path = args.project_path
         elif args.file_path is not None:
-            self.type = "file"
+            self.source_type = "file"
             self.path = args.file_path
         elif args.directory_path is not None:
-            self.type = "directory"
+            self.source_type = "directory"
             self.path = args.directory_path
+
+    def collect_files(self):
+        files = []
+        if self.source_type == "file":
+            files.append(self.path)
+        elif self.source_type == "project":
+            files += self.scan_directory(recursive=True)
+        elif self.source_type == "directory":
+            files += self.scan_directory(recursive=False)
+        return files
+
+    def scan_directory(self, recursive):
+        return glob.glob(os.path.join(self.path, '**', '*.dart'), recursive=recursive)
 
 
 def create_parser():
@@ -42,11 +57,11 @@ def create_parser():
 
 def process_arguments(parser):
     args = parser.parse_args()
-    command_args = CommandArgs(args)
+    file_collection = FileCollection(args)
     if args.command == 'verify':
-        return VerifyAnalyzer(command_args.type, command_args.path)
+        return VerifyAnalyzer(file_collection)
     elif args.command == 'fix':
-        return FixAnalyzer(command_args.type, command_args.path)
+        return FixAnalyzer(file_collection)
 
 
 def parse_command():

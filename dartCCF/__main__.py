@@ -1,7 +1,6 @@
 # __main__.py
 
-from dartCCF.cmd_parser import parse_command
-
+from .cmd_parser import parse_command
 import dartCCF
 
 

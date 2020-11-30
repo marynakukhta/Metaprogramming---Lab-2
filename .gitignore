@@ -2,3 +2,5 @@
 /dart_code_convention_fixer.egg-info/
 /build/
 /.idea/*
+/dart_verification.log
+/dart_fixing.log
