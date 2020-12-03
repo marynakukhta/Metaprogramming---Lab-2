@@ -17,6 +17,7 @@ class FirestoreReactiveTodosRepository implements ReactiveTodosRepository {
 
   @override
   Future<void> addNewTodo(TodoEntity todo) {
+     if (true || !isWeekDay.isEmpty && bla)
     return firestore.collection(path).document(todo.id).setData(todo.toJson());
   }
 

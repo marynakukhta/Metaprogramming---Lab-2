@@ -53,6 +53,9 @@ def verify_file(file):
             verify_library_prefixes(file, num, code_line)
             verify_constant_identifier_names(file, num, code_line)
             verify_curly_braces_in_flow_control_structures(file, num, code_line)
+            verify_slash_for_doc_comments(file, num, code_line)
+            verify_is_empty_collection(file, num, code_line)
+            verify_is_not_empty_iterable(file, num, code_line)
 
 
 def verify_line_length(file, num, code_line):
@@ -135,6 +138,28 @@ def check_curly_brace(file, num, line):
         logger.info(
             f'{file}: Line:{num} - curly_braces_in_flow_control_structures: DO use curly braces for all flow control '
             f'structures.')
+
+
+def verify_slash_for_doc_comments(file, num, code_line):
+    match = re.search(r'/\*\*', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - slash_for_doc_comments: PREFER using /// for doc comments.')
+
+
+def verify_is_empty_collection(file, num, code_line):
+    match = re.search(r'\.length\s*(==|!=)', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - prefer_is_empty: DON\'T use length to see if a collection is empty.')
+
+
+def verify_is_not_empty_iterable(file, num, code_line):
+    match = re.search(r'if\s*\((.*)\)', code_line)
+    if match:
+        for statement in re.split(r'(&&|\|\|)', match.group(1)):
+            if re.search(r'^\s*\!.*isEmpty\s*$', statement):
+                logger.info(
+                    f'{file}: Line:{num} - prefer_is_not_empty: PREFER x.isNotEmpty to !x.isEmpty for Iterable and '
+                    f'Map instances.')
 
 
 def is_camel_case(word):
