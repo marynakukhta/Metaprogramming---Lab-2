@@ -18,6 +18,11 @@ class FirestoreReactiveTodosRepository implements ReactiveTodosRepository {
   @override
   Future<void> addNewTodo(TodoEntity todo) {
      if (true || !isWeekDay.isEmpty && bla)
+       'picture' +
+        'juice'
+
+       'theme ' + name + '.'
+       var name = null;
     return firestore.collection(path).document(todo.id).setData(todo.toJson());
   }
 
@@ -30,6 +35,7 @@ class FirestoreReactiveTodosRepository implements ReactiveTodosRepository {
 
   @override
   Stream<List<TodoEntity>> todos() {
+    var localFunction = () {
     return firestore.collection(path).snapshots().map((snapshot) {
       return snapshot.documents.map((doc) {
         return TodoEntity(

@@ -45,17 +45,31 @@ def verify_file(file):
     with open(file) as f:
         lines = f.readlines()
         for num, code_line in enumerate(lines, start=1):
-            verify_line_length(file, num, code_line)
-            verify_package_imports(file, num, code_line)
-            verify_camel_case_types(file, num, code_line)
-            verify_camel_case_extensions(file, num, code_line)
-            verify_library_names(file, num, code_line)
-            verify_library_prefixes(file, num, code_line)
-            verify_constant_identifier_names(file, num, code_line)
-            verify_curly_braces_in_flow_control_structures(file, num, code_line)
-            verify_slash_for_doc_comments(file, num, code_line)
-            verify_is_empty_collection(file, num, code_line)
-            verify_is_not_empty_iterable(file, num, code_line)
+            if not code_line.strip().startswith("//"):
+                verify_line_length(file, num, code_line)
+                verify_package_imports(file, num, code_line)
+                verify_camel_case_types(file, num, code_line)
+                verify_camel_case_extensions(file, num, code_line)
+                verify_library_names(file, num, code_line)
+                verify_library_prefixes(file, num, code_line)
+                verify_constant_identifier_names(file, num, code_line)
+                verify_curly_braces_in_flow_control_structures(file, num, code_line)
+                verify_slash_for_doc_comments(file, num, code_line)
+                verify_is_empty_collection(file, num, code_line)
+                verify_is_not_empty_iterable(file, num, code_line)
+                verify_lib_relative_imports(file, num, code_line)
+                verify_adjacent_string_concatenation(file, num, code_line)
+                verify_interpolation_to_compose_strings(file, num, code_line)
+                verify_unnecessary_brace_in_string_interps(file, num, code_line)
+                verify_iterable_where_type(file, num, code_line)
+                verify_collection_literals(file, num, code_line)
+                verify_init_to_null(file, num, code_line)
+                verify_catching_errors(file, num, code_line)
+                verify_function_literals_in_foreach_calls(file, num, code_line)
+                verify_function_declarations_over_variables(file, num, code_line)
+                verify_unnecessary_new(file, num, code_line)
+                verify_unnecessary_const(file, num, code_line)
+                verify_catches_without_on_clauses(file, num, code_line)
 
 
 def verify_line_length(file, num, code_line):
@@ -156,10 +170,110 @@ def verify_is_not_empty_iterable(file, num, code_line):
     match = re.search(r'if\s*\((.*)\)', code_line)
     if match:
         for statement in re.split(r'(&&|\|\|)', match.group(1)):
-            if re.search(r'^\s*\!.*isEmpty\s*$', statement):
+            if re.search(r'^\s*!.*isEmpty\s*$', statement):
                 logger.info(
                     f'{file}: Line:{num} - prefer_is_not_empty: PREFER x.isNotEmpty to !x.isEmpty for Iterable and '
                     f'Map instances.')
+
+
+def verify_lib_relative_imports(file, num, code_line):
+    match = re.search(r'import\s+\'([^\']*)\'', code_line)
+    if match:
+        library_name = match.group(1)
+        if library_name.startswith("../") and library_name.find("/lib/") > 0:
+            logger.info(f'{file}: Line:{num} - avoid_relative_lib_imports: DO avoid relative imports '
+                        f'for files in lib/.')
+
+
+def verify_adjacent_string_concatenation(file, num, code_line):
+    match = re.search(r'\'[^\']*\'\s*\+\s*(.*)', code_line)
+    if match:
+        concatenation_subject = match.group(1)
+        if concatenation_subject.startswith("'") or len(concatenation_subject) == 0:
+            logger.info(f'{file}: Line:{num} - prefer_adjacent_string_concatenation: DO use adjacent strings '
+                        f'to concatenate string literals.')
+
+
+def verify_interpolation_to_compose_strings(file, num, code_line):
+    match = re.search(r'\'[^\']*\'\s*\+\s*(.*)', code_line)
+    if match:
+        concatenation_subject = match.group(1)
+        if not concatenation_subject.startswith("'") and len(concatenation_subject) > 0:
+            logger.info(f'{file}: Line:{num} - prefer_adjacent_string_concatenation: PREFER using interpolation '
+                        f'to compose strings and values.')
+
+
+def verify_unnecessary_brace_in_string_interps(file, num, code_line):
+    match = re.search(r'\'([^\']*)\'', code_line)
+    if match:
+        string = match.group(1)
+        match = re.search(r'\${([^}]*)}', string)
+        if match:
+            variable = match.group(1)
+            if not variable.find('.') > 0:
+                logger.info(f'{file}: Line:{num} - unnecessary_brace_in_string_interps: AVOID using braces in '
+                            f'interpolation when not needed.')
+
+
+def verify_iterable_where_type(file, num, code_line):
+    match = re.search(r'\.where\(\(', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - prefer_iterable_whereType: iterable.whereType<T>() over'
+                    f' iterable.where((e) => e is T).')
+
+
+def verify_collection_literals(file, num, code_line):
+    if code_line.find("new List();") > 0 \
+            or code_line.find("new Map();") > 0 \
+            or code_line.find("new Set();") > 0 \
+            or code_line.find("new LinkedHashSet();") > 0 \
+            or code_line.find("new LinkedHashMap();") > 0:
+        logger.info(f'{file}: Line:{num} - prefer_collection_literals: DO use collection literals when possible.')
+
+
+def verify_init_to_null(file, num, code_line):
+    match = re.search(r'\w+\s+\w+\s*=\s*null;', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - avoid_init_to_null: DON\'T explicitly initialize variables to null.')
+
+
+def verify_catching_errors(file, num, code_line):
+    match = re.search(r'\s+on\s+Error\s+catch', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - avoid_catching_errors: DON\'T explicitly catch Error or types '
+                    f'that implement it.')
+
+
+def verify_function_literals_in_foreach_calls(file, num, code_line):
+    match = re.search(r'\.forEach\(\s*\(', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - avoid_function_literals_in_foreach_calls: AVOID using '
+                    f'forEach with a function literal.')
+
+
+def verify_function_declarations_over_variables(file, num, code_line):
+    match = re.search(r'\w+\s+\w+\s*=\s*\(', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - prefer_function_declarations_over_variables: DO use a function declaration '
+                    f'to bind a function to a name.')
+
+
+def verify_unnecessary_new(file, num, code_line):
+    match = re.search(r'=\s*new\s+\w+\(', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - unnecessary_new: AVOID new keyword to create instances.')
+
+
+def verify_unnecessary_const(file, num, code_line):
+    match = re.search(r'=const\s*\w+=\s*const', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - unnecessary_const: AVOID repeating const keyword in a const context.')
+
+
+def verify_catches_without_on_clauses(file, num, code_line):
+    match = re.search(r'on\s*\w+\s+catch', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - avoid_catches_without_on_clauses: AVOID catches without on clauses.')
 
 
 def is_camel_case(word):
