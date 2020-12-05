@@ -4,14 +4,22 @@
 
 import 'dart:async';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as MoJo;
 import 'package:todos_repository_core/todos_repository_core.dart';
 import 'odos_repository_core/todos_repository_core.dart';
+
+class _totot_bloat {}
+class otot_bloat {}
+extension _clost<Nana> on
+
+const TreatMeWell = 1
+const _treat_me_bad = false
 
 class FirestoreReactiveTodosRepository implements ReactiveTodosRepository {
   static const String path = 'todo';
 
   final Firestore firestore;
+
 
   const FirestoreReactiveTodosRepository(this.firestore);
 
@@ -35,7 +43,7 @@ class FirestoreReactiveTodosRepository implements ReactiveTodosRepository {
 
   @override
   Stream<List<TodoEntity>> todos() {
-    var localFunction = () {
+    var localFunction \n = () {
     return firestore.collection(path).snapshots().map((snapshot) {
       return snapshot.documents.map((doc) {
         return TodoEntity(

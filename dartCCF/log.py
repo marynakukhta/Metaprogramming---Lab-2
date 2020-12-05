@@ -10,6 +10,7 @@ def setup_logger(logger_file_name):
     console_stream_handler.setFormatter(logging.Formatter(fmt='%(levelname)s - %(message)s'))
 
     logger.addHandler(console_stream_handler)
+
     file_handler = logging.FileHandler(filename='./%s' % logger_file_name, mode='w')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(logging.Formatter(fmt='%(asctime)s - %(message)s'))

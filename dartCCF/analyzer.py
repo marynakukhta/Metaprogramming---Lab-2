@@ -1,6 +1,7 @@
 from .log import setup_logger
 import logging
 import re
+import shutil
 
 logger = logging.getLogger('DSCA')
 
@@ -18,7 +19,10 @@ class Analyzer:
     def run(self):
         for file in self.files:
             logger.debug(f'Starting {self.log_tag} for: {file}')
-            verify_file(file)
+            self.run_file(file)
+        pass
+
+    def run_file(self, file):
         pass
 
     pass
@@ -29,7 +33,9 @@ class VerifyAnalyzer(Analyzer):
         super().__init__(file_collection, "dart_verification.log", "verification")
         pass
 
-    pass
+    def run_file(self, file):
+        verify_file(file)
+        pass
 
 
 class FixAnalyzer(Analyzer):
@@ -37,7 +43,38 @@ class FixAnalyzer(Analyzer):
         super().__init__(file_collection, "dart_fixing.log", "fixing")
         pass
 
+    def run_file(self, file):
+        fix_file(file)
+        pass
+
     pass
+
+
+def fix_file(file):
+    new_file = fix_file_names(file)
+    with open(new_file) as f:
+        lines = f.readlines()
+        new_lines = []
+        need_fixing = False
+        for num, code_line in enumerate(lines, start=1):
+            if code_line.strip().startswith("//"):
+                new_lines.append(code_line)
+            else:
+                new_code_line = fix_camel_case_types(new_file, num, code_line)
+                new_code_line = fix_camel_case_extensions(new_file, num, new_code_line)
+                new_code_line = fix_library_prefixes(new_file, num, new_code_line)
+                new_code_line = fix_constant_identifier_names(new_file, num, new_code_line)
+
+                new_lines.append(new_code_line)
+                if new_code_line != code_line:
+                    need_fixing = True
+
+        if need_fixing:
+            out = open(re.sub(r'\.dart', "_fix.dart", new_file), "w")
+            out.writelines(new_lines)
+            out.close()
+        else:
+            logger.debug(f'{new_file}: no changes.')
 
 
 def verify_file(file):
@@ -94,12 +131,34 @@ def verify_camel_case_types(file, num, code_line):
             logger.info(f'{file}: Line:{num} - camel_case_types: DO name types using UpperCamelCase.')
 
 
+def fix_camel_case_types(file, num, code_line):
+    match = re.search(r'(class|typedef)\s+(\w+)(<[^>]*>)?\s*({|extends)', code_line)
+    if match:
+        class_name = match.group(2)
+        if not is_camel_case(class_name):
+            new_class_name = to_camel_case(class_name)
+            logger.info(f'{file}: Line:{num} - Class {class_name} updated to CamelCase: {new_class_name}.')
+            return re.sub(class_name, new_class_name, code_line)
+    return code_line
+
+
 def verify_camel_case_extensions(file, num, code_line):
     match = re.search(r'extension\s+(\w+)(<[^>]*>)?\s+on', code_line)
     if match:
         extension_name = match.group(1)
         if not is_camel_case(extension_name):
             logger.info(f'{file}: Line:{num} - camel_case_extensions: DO name extensions using UpperCamelCase.')
+
+
+def fix_camel_case_extensions(file, num, code_line):
+    match = re.search(r'extension\s+(\w+)(<[^>]*>)?\s+on', code_line)
+    if match:
+        extension_name = match.group(1)
+        if not is_camel_case(extension_name):
+            new_extension_name = to_camel_case(extension_name)
+            logger.info(f'{file}: Line:{num} - Extension {extension_name} update to CamelCase {new_extension_name}')
+            return re.sub(extension_name, new_extension_name, code_line)
+    return code_line
 
 
 def verify_library_names(file, num, code_line):
@@ -118,6 +177,19 @@ def verify_file_names(file):
             logger.info(f'{file}: file_names: DO name source files using lowercase_with_underscores.')
 
 
+def fix_file_names(file):
+    match = re.search(r'(\w+).dart$', file)
+    if match:
+        file_name = match.group(1)
+        if not is_snake_case_full(file_name):
+            new_file_name = "{0}.dart".format(to_snake_case(file_name))
+            new_file_path = re.sub(file_name + r'\.dart', new_file_name, file)
+            shutil.copyfile(file, new_file_path)
+            logger.info(f'{file}: file_name changed to: {new_file_name}.')
+            return new_file_path
+    return file
+
+
 def verify_library_prefixes(file, num, code_line):
     match = re.search(r'import\s+\'[^\']*\'\s+as\s+(\w+)\s*;', code_line)
     if match:
@@ -127,13 +199,35 @@ def verify_library_prefixes(file, num, code_line):
                         f'library prefix.')
 
 
+def fix_library_prefixes(file, num, code_line):
+    match = re.search(r'import\s+\'[^\']*\'\s+as\s+(\w+)\s*;', code_line)
+    if match:
+        library_prefix = match.group(1)
+        if not is_snake_case(library_prefix):
+            new_library_prefix = to_snake_case(library_prefix)
+            logger.info(f'{file}: Line:{num} - Prefix {library_prefix} changed to snake case {new_library_prefix}')
+            return re.sub(library_prefix, new_library_prefix, code_line)
+    return code_line
+
+
 def verify_constant_identifier_names(file, num, code_line):
     match = re.search(r'(const|final)\s+(\w+)\s*=', code_line)
     if match:
-        constant_name = match.group(1)
+        constant_name = match.group(2)
         if not is_lower_camel_case(constant_name):
             logger.info(
                 f'{file}: Line:{num} - constant_identifier_names: PREFER using lowerCamelCase for constant names')
+
+
+def fix_constant_identifier_names(file, num, code_line):
+    match = re.search(r'(const|final)\s+(\w+)\s*=', code_line)
+    if match:
+        constant_name = match.group(2)
+        if not is_lower_camel_case(constant_name):
+            new_constant_name = to_lower_camel_case(constant_name)
+            logger.info(f'{file}: Line:{num} - Const {constant_name} changed to snake case {new_constant_name}')
+            return re.sub(constant_name, new_constant_name, code_line)
+    return code_line
 
 
 def verify_curly_braces_in_flow_control_structures(file, num, code_line):
@@ -167,7 +261,7 @@ def verify_is_empty_collection(file, num, code_line):
 
 
 def verify_is_not_empty_iterable(file, num, code_line):
-    match = re.search(r'if\s*\((.*)\)', code_line)
+    match = re.search(r'if\s*\(([^\)]*)\)', code_line)
     if match:
         for statement in re.split(r'(&&|\|\|)', match.group(1)):
             if re.search(r'^\s*!.*isEmpty\s*$', statement):
@@ -302,3 +396,16 @@ def is_snake_case_full(word):
         return True
     else:
         return False
+
+
+def to_snake_case(text):
+    return re.sub(r'([A-Z])', r'_\1', text).lower()
+
+
+def to_camel_case(text):
+    return re.sub(r'_([a-z])', lambda x: x.group(1).upper(), text)
+
+
+def to_lower_camel_case(text):
+    new_text = to_camel_case(text)
+    return new_text[0].lower() + new_text[1:]
