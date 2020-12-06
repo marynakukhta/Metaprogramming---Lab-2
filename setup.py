@@ -14,7 +14,7 @@ with open("README.md", "rb") as f:
 setup(
     name="dart-code-convention-fixer",
     version=version,
-    description="Read the latest Real Python tutorials",
+    description="Dart code convention fixer",
     long_description=README,
     long_description_content_type="text/markdown",
     url="https://github.com/marynakukhta/metaprog",
