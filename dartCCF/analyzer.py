@@ -64,6 +64,7 @@ def fix_file(file):
                 new_code_line = fix_camel_case_extensions(new_file, num, new_code_line)
                 new_code_line = fix_library_prefixes(new_file, num, new_code_line)
                 new_code_line = fix_constant_identifier_names(new_file, num, new_code_line)
+                new_code_line = fix_non_constant_identifier_names(file, num, new_code_line)
 
                 new_lines.append(new_code_line)
                 if new_code_line != code_line:
@@ -107,6 +108,8 @@ def verify_file(file):
                 verify_unnecessary_new(file, num, code_line)
                 verify_unnecessary_const(file, num, code_line)
                 verify_catches_without_on_clauses(file, num, code_line)
+                verify_non_constant_identifier_names(file, num, code_line)
+                verify_generic_function_type_aliases(file, num, code_line)
 
 
 def verify_line_length(file, num, code_line):
@@ -159,6 +162,12 @@ def fix_camel_case_extensions(file, num, code_line):
             logger.info(f'{file}: Line:{num} - Extension {extension_name} update to CamelCase {new_extension_name}')
             return re.sub(extension_name, new_extension_name, code_line)
     return code_line
+
+
+def verify_generic_function_type_aliases(file, num, code_line):
+    match = re.search(r'(typedef)\s+(void\s+[A-Z]\(\s*\))', code_line)
+    if match:
+        logger.info(f'{file}: Line:{num} - Type aliases: PREFER generic function type aliases.')
 
 
 def verify_library_names(file, num, code_line):
@@ -214,19 +223,41 @@ def verify_constant_identifier_names(file, num, code_line):
     match = re.search(r'(const|final)\s+(\w+)\s*=', code_line)
     if match:
         constant_name = match.group(2)
-        if not is_lower_camel_case(constant_name):
+        if not is_upper_snake_case(constant_name):
             logger.info(
-                f'{file}: Line:{num} - constant_identifier_names: PREFER using lowerCamelCase for constant names')
+                f'{file}: Line:{num} - constant_identifier_names: PREFER using UPPER_SNAKE_CASE for constant names')
 
 
 def fix_constant_identifier_names(file, num, code_line):
     match = re.search(r'(const|final)\s+(\w+)\s*=', code_line)
     if match:
         constant_name = match.group(2)
-        if not is_lower_camel_case(constant_name):
-            new_constant_name = to_lower_camel_case(constant_name)
-            logger.info(f'{file}: Line:{num} - Const {constant_name} changed to snake case {new_constant_name}')
+        if not is_upper_snake_case(constant_name):
+            new_constant_name = to_upper_snake_case(constant_name)
+            logger.info(f'{file}: Line:{num} - Const {constant_name} changed to UPPER_SNAKE_CASE {new_constant_name}')
             return re.sub(constant_name, new_constant_name, code_line)
+    return code_line
+
+
+def verify_non_constant_identifier_names(file, num, code_line):
+    match = re.search(r'(var|\w+)\s+(\w+)\s*;', code_line)
+    if match:
+        non_constant_name = match.group(2)
+        if not is_lower_camel_case(non_constant_name):
+            logger.info(
+                f'{file}: Line:{num} - non_constant_identifier_names:'
+                f' PREFER using lowerCamelCase for non constant names')
+
+
+def fix_non_constant_identifier_names(file, num, code_line):
+    match = re.search(r'(var|\w+)\s+(\w+)\s*;', code_line)
+    if match:
+        non_constant_name = match.group(2)
+        if not is_lower_camel_case(non_constant_name):
+            new_constant_name = to_lower_camel_case(non_constant_name)
+            logger.info(f'{file}: Line:{num} - Non const {non_constant_name} '
+                        f'changed to lowerCamelCase {new_constant_name}')
+            return re.sub(non_constant_name, new_constant_name, code_line)
     return code_line
 
 
@@ -402,8 +433,19 @@ def to_snake_case(text):
     return re.sub(r'([A-Z])', r'_\1', text).lower()
 
 
+def is_upper_snake_case(word):
+    if re.match(r'([A-Z0-9_]+)\s+', word):
+        return True
+    else:
+        return False
+
+
+def to_upper_snake_case(text):
+    return re.sub(r'(?<!^)(?=[A-Z])', r'_', text).upper()
+
+
 def to_camel_case(text):
-    return re.sub(r'_([a-z])', lambda x: x.group(1).upper(), text)
+    return re.sub(r'([a-zA-Z])([a-z]+)', lambda x: x.group(1).upper() + x.group(2), text)
 
 
 def to_lower_camel_case(text):
