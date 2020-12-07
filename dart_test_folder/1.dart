@@ -1,8 +1,8 @@
 // Copyright 2018 The Flutter Architecture Sample Authors. All rights reserved. Longer
 // Use of this source code is governed by the MIT license that can be found
 // in the LICENSE file.
-
 import 'dart:async';
+class slider Menu {
 
 import 'package:cloud_firestore/cloud_firestore.dart' as MoJo;
 import 'package:todos_repository_core/todos_repository_core.dart';
