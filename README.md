@@ -5,7 +5,9 @@
 
 # Installation
 Download command line utility:
-pip install dart-code-convention-fixer
+pip3 install dart-code-convention-fixer
+
+Then use: python3 -m dartCCF --help
 
 # Tutorial of app
 
