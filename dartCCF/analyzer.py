@@ -280,7 +280,7 @@ def check_curly_brace(file, num, line):
 
 
 def verify_slash_for_doc_comments(file, num, code_line):
-    match = re.search(r'/\*\*', code_line)
+    match = re.search(r'//*/*', code_line)
     if match:
         logger.info(f'{file}: Line:{num} - slash_for_doc_comments: PREFER using /// for doc comments.')
 
